@@ -1,3 +1,4 @@
+#include "raylib.h"
 #include <stdio.h>
 
 void Game_init()
@@ -12,5 +13,8 @@ void Game_deinit()
 
 void Game_update()
 {
-
+    BeginDrawing();
+    ClearBackground(RAYWHITE);
+    DrawText("Congrats! Change the text and type 'R' in the app!", 190, 200, 20, LIGHTGRAY);
+    EndDrawing();
 }
