@@ -35,6 +35,8 @@
 *.i*86
 *.x86_64
 *.hex
+*.data
+*.dll
 
 # Debug files
 *.dSYM/
@@ -59,6 +61,9 @@ dkms.conf
 *.user
 *.aps
 .vs
+
+# VS Code
+.vscode/
 
 # Clangd LSP
 .cache

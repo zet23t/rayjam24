@@ -44,8 +44,6 @@ typedef enum {
     SCREEN_ENDING
 } GameScreen;
 
-// TODO: Define your custom data types here
-
 //----------------------------------------------------------------------------------
 // Global Variables Definition
 //----------------------------------------------------------------------------------
@@ -106,12 +104,83 @@ int main(void)
     return 0;
 }
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void (*Game_init)();
+void (*Game_deinit)();
+void (*Game_update)();
+
+void init()
+{
+    if (Game_init)
+    {
+        Game_init();
+    }
+}
+
+void deinit()
+{
+    if (Game_deinit)
+    {
+        Game_deinit();
+    }
+}
+
+void update()
+{
+    if (Game_update)
+    {
+        Game_update();
+    }
+}
+
+void unload_game();
+void load_game();
+
+static int is_built = 0;
+static void build_game()
+{
+    is_built = 1;
+    deinit();
+    unload_game();
+    Game_deinit = NULL;
+    Game_init = NULL;
+    Game_update = NULL;
+    char buildCommand[1024] = {0};
+    char cfilelist[2048] = {0};
+    FilePathList files = LoadDirectoryFiles("game");
+    for (int i = 0; i < files.count; i++)
+    {
+        const char *file = files.paths[i];
+        const char *ext = GetFileExtension(file);
+        if (strcmp(ext, ".c") == 0)
+        {
+            strcat(cfilelist, file);
+            strcat(cfilelist, " ");
+        }
+    }
+    UnloadDirectoryFiles(files);
+
+    sprintf(buildCommand, "gcc -I../../raylib/src -L../../raylib/src -o game.dll -shared -fPIC %s -lraylib",
+            cfilelist);
+    printf("Building game: %s\n", buildCommand);
+    system(buildCommand);
+    load_game();
+    init();
+}
+
 //--------------------------------------------------------------------------------------------
 // Module functions definition
 //--------------------------------------------------------------------------------------------
 // Update and draw frame
 void UpdateDrawFrame(void)
 {
+    if (IsKeyPressed(KEY_R) || !is_built)
+    {
+        build_game();
+    }
     // Update
     //----------------------------------------------------------------------------------
     // TODO: Update variables / Implement example logic at this point
@@ -124,9 +193,10 @@ void UpdateDrawFrame(void)
     BeginTextureMode(target);
         ClearBackground(RAYWHITE);
         
-        // TODO: Draw your game screen here
-        DrawText("Welcome to raylib NEXT gamejam!", 150, 140, 30, BLACK);
-        DrawRectangleLinesEx((Rectangle){ 0, 0, screenWidth, screenHeight }, 16, BLACK);
+        // // TODO: Draw your game screen here
+        // DrawText("Welcome to raylib NEXT gamejam!", 150, 140, 30, BLACK);
+        // DrawRectangleLinesEx((Rectangle){ 0, 0, screenWidth, screenHeight }, 16, BLACK);
+        update();
         
     EndTextureMode();
     

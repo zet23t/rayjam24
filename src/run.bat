@@ -1,0 +1,3 @@
+make RAYLIB_LIBTYPE=SHARED BUILD_MODE=DEBUG
+
+raylib_game.exe 
