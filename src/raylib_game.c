@@ -171,6 +171,7 @@ static void build_game()
     init();
 }
 
+static int run_foreground = 0;
 //--------------------------------------------------------------------------------------------
 // Module functions definition
 //--------------------------------------------------------------------------------------------
@@ -180,6 +181,13 @@ void UpdateDrawFrame(void)
     if (IsKeyPressed(KEY_R) || !is_built)
     {
         build_game();
+    }
+
+    if (IsKeyPressed(KEY_F))
+    {
+        run_foreground = !run_foreground;
+        if (run_foreground) SetWindowState(FLAG_WINDOW_TOPMOST);
+        else ClearWindowState(FLAG_WINDOW_TOPMOST);
     }
     
     update();

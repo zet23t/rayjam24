@@ -264,7 +264,7 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
         # NOTE: WinMM library required to set high-res timer resolution
         LDLIBS = -lraylib -lopengl32 -lgdi32 -lwinmm -lcomdlg32 -lole32
         # Required for physac examples
-        # LDLIBS += -static -lpthread
+        # LDLIBS += -static -lpthread # <- breaks shared library build
     endif
     ifeq ($(PLATFORM_OS),LINUX)
         # Libraries for Debian GNU/Linux desktop compiling

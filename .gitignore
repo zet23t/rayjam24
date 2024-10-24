@@ -75,3 +75,6 @@ compile_commands.json
 # Android
 *apk*
 android.*
+
+# recordings
+*.gif
