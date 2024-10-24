@@ -16,6 +16,7 @@ uniform vec4 colDiffuse;
 uniform vec2 resolution;
 void main() {
     vec4 texelColor = texture2D(texture0, fragTexCoord.xy);
+    // gl_FragColor = vec4(texelColor.bbb*10.0, 1.0);
     vec4 texelColorN = texture2D(texture0, fragTexCoord.xy + vec2(0.0, 1.0 / resolution.y));
     vec4 texelColorE = texture2D(texture0, fragTexCoord.xy + vec2(1.0 / resolution.x, 0.0));
     vec4 texelColorS = texture2D(texture0, fragTexCoord.xy - vec2(0.0, 1.0 / resolution.y));
@@ -26,8 +27,9 @@ void main() {
     float zE = texelColorE.b;
     float zS = texelColorS.b;
     float zW = texelColorW.b;
-    float f = texelColor.r;
     
+    // unpack color from 32bit red channel
+    float f = texelColor.r;
     vec3 color = vec3(0.0);
     color.b = f / 256.0 / 256.0;
     color.g = fract((f - color.b * 256.0) / 256.0);
@@ -58,16 +60,16 @@ void main() {
         (z + 0.0004 < zW) ||
         (z + 0.0004 < zS) ||
         (z + 0.0004 < zN)
-        )// && abs(texelColor.g - texelColorE.g) > 0.05)
+        )
     {
         diff = 0.0;
     }
     else {
         z -= 0.0002;
-        if ((v - vW < -0.001 && z < zW) ||
-            (v - vS < -0.001 && z < zS) ||
-            (v - vN < -0.001 && z < zN) ||
-            (v - vE < -0.001 && z < zE))
+        if ((v - vW <= -0.000001 && z <= zW) ||
+            (v - vS <= -0.000001 && z <= zS) ||
+            (v - vN <= -0.000001 && z <= zN) ||
+            (v - vE <= -0.000001 && z <= zE))
         {
             diff = 0.0;
         }

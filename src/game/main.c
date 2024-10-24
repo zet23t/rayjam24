@@ -33,6 +33,10 @@ RenderTexture2D LoadRenderTexture32(int width, int height)
         target.depth.format = 19;       //DEPTH_COMPONENT_24BIT?
         target.depth.mipmaps = 1;
 
+        // Set framebuffer wrapping to clip
+        rlTextureParameters(target.texture.id, RL_TEXTURE_WRAP_S, RL_TEXTURE_WRAP_CLAMP);
+        rlTextureParameters(target.texture.id, RL_TEXTURE_WRAP_T, RL_TEXTURE_WRAP_CLAMP);
+
         // Attach color texture and depth renderbuffer/texture to FBO
         rlFramebufferAttach(target.id, target.texture.id, RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
         rlFramebufferAttach(target.id, target.depth.id, RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_RENDERBUFFER, 0);
@@ -57,7 +61,7 @@ void Game_init()
     model.materials[1].shader = shader;
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
-    target = LoadRenderTexture32(screenWidth>>2, screenHeight>>2);
+    target = LoadRenderTexture32(screenWidth>>1, screenHeight>>1);
     SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
 }
 
@@ -74,22 +78,25 @@ void Game_update()
 {
     BeginTextureMode(target);
     ClearBackground(WHITE);
-    float time = sinf(GetTime() * 0.5f) * 0.5f + PI * 1.25f;
-    float camx = sinf(time) * 5.0f;
-    float camz = cosf(time) * 5.0f;
-    Camera3D camera = {
+    // float time = sinf(GetTime() * 0.5f) * 0.0f + PI * 1.25f;
+    // float camx = sinf(time) * 5.0f;
+    // float camz = cosf(time) * 5.0f;
+    static Camera3D camera = {
         .fovy = 45.0f,
-        .target = (Vector3){0.0f, 0.25f, 0.0f},
-        .up = (Vector3){0.0f, 1.0f, 0.0f},
-        .position = (Vector3){camx, 2.0f, camz},
+        .target = {0.0f, 0.25f, 0.0f},
+        .up = {0.0f, 1.0f, 0.0f},
+        .position = {-4.0f, 2.5f, -3.0f},
     };
 
+    UpdateCamera(&camera, CAMERA_THIRD_PERSON);
     rlDisableColorBlend();
 
     rlSetBlendMode(RL_BLEND_CUSTOM);
     rlSetBlendFactors(GL_ONE, GL_ZERO, GL_FUNC_ADD);
     BeginMode3D(camera);
 
+    float clockTime = GetTime();
+    SetShaderValue(shader, GetShaderLocation(shader, "time"), &clockTime, SHADER_UNIFORM_FLOAT);
     DrawModel(model, (Vector3){0.0f, 0.0f, 0.0f}, 1.0f, WHITE);
 
     EndMode3D();

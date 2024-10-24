@@ -19,10 +19,16 @@ varying vec3 fragPosition;
 
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
+uniform float time;
 void main() {
     vec2 screenPos = gl_FragCoord.xy;
     vec2 blockPos = floor(fragTexCoord * 16.0) / 16.0;
     vec2 uv = screenPos / vec2(128.0, 128.0);
+    if (fragTexCoord.x > 1.0)
+    {
+        uv.y += fract(time * -1.0) / 16.0;
+        // uv.x += fract(time * -2.0) / 16.0;
+    }
     uv.x = fract(uv.x * 16.0) / 16.0 + blockPos.x;
     uv.y = fract(uv.y * 16.0) / 16.0 + blockPos.y;
     vec4 color = texture2D(texture0, uv);
@@ -32,6 +38,6 @@ void main() {
     }
     gl_FragColor.r = color.r + floor(color.g * 256.0) + floor(color.b * 256.0 * 256.0);
     gl_FragColor.g = fragTexCoord.y + (fragTexCoord.x > 1.0 ? 1.0 : 0.0);
-    gl_FragColor.b = fragPosition.z * 0.001;
+    gl_FragColor.b = fragPosition.z * -0.002;
     gl_FragColor.a = 0.0;
 }
