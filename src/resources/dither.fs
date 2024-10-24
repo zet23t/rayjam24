@@ -22,7 +22,7 @@ uniform vec4 colDiffuse;
 uniform float time;
 void main() {
     vec2 screenPos = gl_FragCoord.xy;
-    vec2 blockPos = floor(fragTexCoord * 16.0) / 16.0;
+    vec2 blockPos = floor(fract(fragTexCoord) * 16.0) / 16.0;
     vec2 uv = screenPos / vec2(128.0, 128.0);
     if (fragTexCoord.x > 1.0)
     {
