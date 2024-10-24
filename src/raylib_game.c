@@ -50,8 +50,6 @@ typedef enum {
 static const int screenWidth = 800;
 static const int screenHeight = 450;
 
-static RenderTexture2D target = { 0 };  // Render texture to render our game
-
 // TODO: Define global variables here, recommended to make them static
 
 //----------------------------------------------------------------------------------
@@ -92,10 +90,6 @@ int main(void)
     }
 #endif
 
-    // De-Initialization
-    //--------------------------------------------------------------------------------------
-    UnloadRenderTexture(target);
-    
     // TODO: Unload all loaded resources at this point
 
     CloseWindow();        // Close window and OpenGL context
@@ -104,6 +98,7 @@ int main(void)
     return 0;
 }
 
+#ifndef PLATFORM_WEB
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -170,7 +165,29 @@ static void build_game()
     load_game();
     init();
 }
+#else
+#include "game/main.c"
+int isInitialized = 0;
+void init()
+{
+    Game_init();
+}
 
+void deinit()
+{
+    Game_deinit();
+}
+
+void update()
+{
+    if (!isInitialized)
+    {
+        isInitialized = 1;
+        init();
+    }
+    Game_update();
+}
+#endif
 static int run_foreground = 0;
 //--------------------------------------------------------------------------------------------
 // Module functions definition
@@ -178,6 +195,7 @@ static int run_foreground = 0;
 // Update and draw frame
 void UpdateDrawFrame(void)
 {
+    #ifndef PLATFORM_WEB
     if (IsKeyPressed(KEY_R) || !is_built)
     {
         build_game();
@@ -189,6 +207,7 @@ void UpdateDrawFrame(void)
         if (run_foreground) SetWindowState(FLAG_WINDOW_TOPMOST);
         else ClearWindowState(FLAG_WINDOW_TOPMOST);
     }
+    #endif
     
     update();
 }

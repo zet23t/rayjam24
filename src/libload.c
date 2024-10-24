@@ -1,3 +1,4 @@
+#ifndef PLATFORM_WEB
 #include "windows.h"
 
 extern void (*Game_init)();
@@ -27,3 +28,4 @@ void load_game()
         Game_update = (void (*)())GetProcAddress(game, "Game_update");
     }
 }
+#endif
