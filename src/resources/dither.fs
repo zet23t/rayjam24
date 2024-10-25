@@ -33,11 +33,14 @@ void main() {
     uv.y = fract(uv.y * 16.0) / 16.0 + blockPos.y;
     vec4 color = texture2D(texture0, uv);
     if (color.r > 0.9 && color.g < 0.5 && color.b > 0.9)
-    {
+    {   
+        // pink transparent color
         discard;
     }
-    gl_FragColor.r = color.r + floor(color.g * 256.0) + floor(color.b * 256.0 * 256.0);
+    // decode with 6bpp per channel and store green 8bpp in alpha; 
+    // some mobile devices don't provide 32bit texture channels
+    gl_FragColor.r = color.r / 4.0 + floor(color.b * 64.0 + .5) / 4.0;
     gl_FragColor.g = fragTexCoord.y + (fragTexCoord.x > 1.0 ? 1.0 : 0.0);
     gl_FragColor.b = fragPosition.z * -0.002;
-    gl_FragColor.a = 0.0;
+    gl_FragColor.a = color.g;
 }

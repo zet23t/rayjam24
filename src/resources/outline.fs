@@ -22,18 +22,18 @@ void main() {
     vec4 texelColorS = texture2D(texture0, fragTexCoord.xy - vec2(0.0, 1.0 / resolution.y));
     vec4 texelColorW = texture2D(texture0, fragTexCoord.xy - vec2(1.0 / resolution.x, 0.0));
     
-    float z = texelColor.b + 0.0001;
+    float z = texelColor.b;
     float zN = texelColorN.b;
     float zE = texelColorE.b;
     float zS = texelColorS.b;
     float zW = texelColorW.b;
     
-    // unpack color from 32bit red channel
+    // unpack color from 32bit but potential 16bit red channel
     float f = texelColor.r;
     vec3 color = vec3(0.0);
-    color.b = f / 256.0 / 256.0;
-    color.g = fract((f - color.b * 256.0) / 256.0);
-    color.r = fract(f);
+    color.b = f / 16.0;
+    color.r = fract(f * 4.0);
+    color.g = texelColor.a;
 
     if (texelColor == vec4(1.0, 1.0, 1.0, 1.0))
     {
@@ -52,14 +52,16 @@ void main() {
     float vE = texelColorE.g;
     float vS = texelColorS.g;
     float vW = texelColorW.g;
-    if ((z < zE && abs(v - vE) > 0.01) || 
-        (z < zW && abs(v - vW) > 0.01) || 
-        (z < zS && abs(v - vS) > 0.01) || 
-        (z < zN && abs(v - vN) > 0.01) ||
-        (z + 0.0004 < zE) ||
-        (z + 0.0004 < zW) ||
-        (z + 0.0004 < zS) ||
-        (z + 0.0004 < zN)
+    z += 0.0001;
+    float bias = 10.0;
+    if ((z < zE && abs(v - vE) > 0.01 * (bias)) || 
+        (z < zW && abs(v - vW) > 0.01 * (bias)) || 
+        (z < zS && abs(v - vS) > 0.01 * (bias)) || 
+        (z < zN && abs(v - vN) > 0.01 * (bias)) ||
+        (z * 1.1 < zE) ||
+        (z * 1.1 < zW) ||
+        (z * 1.1 < zS) ||
+        (z * 1.1 < zN)
         )
     {
         diff = 0.0;
