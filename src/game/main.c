@@ -5,51 +5,11 @@
 #include <external/glad.h>
 
 static Model model;
+static Shader defaultShader;
 static Shader shader;
 static Shader outlineShader;
 static RenderTexture2D target = {0};
-
-RenderTexture2D LoadRenderTexture32(int width, int height)
-{
-    RenderTexture2D target = { 0 };
-
-    target.id = rlLoadFramebuffer(); // Load an empty framebuffer
-
-    if (target.id > 0)
-    {
-        rlEnableFramebuffer(target.id);
-
-        // Create color texture (default to RGBA)
-        target.texture.id = rlLoadTexture(NULL, width, height, PIXELFORMAT_UNCOMPRESSED_R32G32B32A32, 1);
-        target.texture.width = width;
-        target.texture.height = height;
-        target.texture.format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8;
-        target.texture.mipmaps = 1;
-
-        // Create depth renderbuffer/texture
-        target.depth.id = rlLoadTextureDepth(width, height, true);
-        target.depth.width = width;
-        target.depth.height = height;
-        target.depth.format = 19;       //DEPTH_COMPONENT_24BIT?
-        target.depth.mipmaps = 1;
-
-        // Set framebuffer wrapping to clip
-        rlTextureParameters(target.texture.id, RL_TEXTURE_WRAP_S, RL_TEXTURE_WRAP_CLAMP);
-        rlTextureParameters(target.texture.id, RL_TEXTURE_WRAP_T, RL_TEXTURE_WRAP_CLAMP);
-
-        // Attach color texture and depth renderbuffer/texture to FBO
-        rlFramebufferAttach(target.id, target.texture.id, RL_ATTACHMENT_COLOR_CHANNEL0, RL_ATTACHMENT_TEXTURE2D, 0);
-        rlFramebufferAttach(target.id, target.depth.id, RL_ATTACHMENT_DEPTH, RL_ATTACHMENT_RENDERBUFFER, 0);
-
-        // Check if fbo is complete with attachments (valid)
-        if (rlFramebufferComplete(target.id)) TRACELOG(LOG_INFO, "FBO: [ID %i] Framebuffer object created successfully", target.id);
-
-        rlDisableFramebuffer();
-    }
-    else TRACELOG(LOG_WARNING, "FBO: Framebuffer object can not be created");
-
-    return target;
-}
+static Font fntMedium = {0};
 
 void Game_init()
 {
@@ -57,12 +17,12 @@ void Game_init()
     model = LoadModel("resources/polyobjects.glb");
     shader = LoadShader("resources/dither.vs", "resources/dither.fs");
     outlineShader = LoadShader(0, "resources/outline.fs");
+    defaultShader = model.materials[0].shader;
     model.materials[0].shader = shader;
     model.materials[1].shader = shader;
-    int screenWidth = GetScreenWidth();
-    int screenHeight = GetScreenHeight();
-    target = LoadRenderTexture32(screenWidth>>1, screenHeight>>1);
-    SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
+
+    
+    fntMedium = LoadFont("resources/fnt_medium.png");
 }
 
 void Game_deinit()
@@ -72,10 +32,23 @@ void Game_deinit()
     UnloadShader(shader);
     UnloadShader(outlineShader);
     UnloadRenderTexture(target);
+    UnloadFont(fntMedium);
 }
+
 
 void Game_update()
 {
+    static int mode = 0;
+    int screenWidth = GetScreenWidth();
+    int screenHeight = GetScreenHeight();
+
+    if ((screenWidth >> 1) != target.texture.width || (screenHeight >> 1) != target.texture.height)
+    {
+        UnloadRenderTexture(target);
+        target = LoadRenderTexture(screenWidth>>1, screenHeight>>1);
+        SetTextureFilter(target.texture, TEXTURE_FILTER_POINT);
+    }
+
     BeginTextureMode(target);
     ClearBackground(WHITE);
     // float time = sinf(GetTime() * 0.5f) * 0.0f + PI * 1.25f;
@@ -91,8 +64,8 @@ void Game_update()
     UpdateCamera(&camera, CAMERA_THIRD_PERSON);
     rlDisableColorBlend();
 
-    rlSetBlendMode(RL_BLEND_CUSTOM);
-    rlSetBlendFactors(GL_ONE, GL_ZERO, GL_FUNC_ADD);
+    // rlSetBlendMode(RL_BLEND_CUSTOM);
+    // rlSetBlendFactors(GL_ONE, GL_ZERO, GL_FUNC_ADD);
     BeginMode3D(camera);
 
     float clockTime = GetTime();
@@ -102,14 +75,46 @@ void Game_update()
     EndMode3D();
     EndTextureMode();
 
-    rlDisableColorBlend();
+    rlEnableColorBlend();
+    // rlSetBlendMode(RL_BLEND_ALPHA);
     BeginDrawing();
-    BeginShaderMode(outlineShader);
+    if ((mode & 1) == 0)
+    {
+        BeginShaderMode(outlineShader);
+    }
     SetShaderValue(outlineShader, GetShaderLocation(outlineShader, "resolution"), (float[2]){(float)target.texture.width, (float)target.texture.height}, SHADER_UNIFORM_VEC2);
     DrawTexturePro(target.texture, 
         (Rectangle){0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height}, 
-        (Rectangle){0.0f, 0.0f, (float)GetScreenWidth(), (float)GetScreenHeight()}, 
+        (Rectangle){0.0f, 0.0f, (float)screenWidth, (float)screenHeight}, 
         (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
-    EndShaderMode();
+    if ((mode & 1) == 0)
+        EndShaderMode();
+
+
+    // int mouseX = GetMouseX();
+    // int mouseY = GetMouseY();
+    // int hoverA = (mouseX > 0 && mouseX < 20 && mouseY > 5 && mouseY < 25);
+    // int hoverB = (mouseX > 30 && mouseX < 50 && mouseY > 5 && mouseY < 25);
+    // int hoverC = (mouseX > 55 && mouseX < 75 && mouseY > 5 && mouseY < 25);
+
+    // mode = hoverA ? 1 : hoverB ? 2 : hoverC ? 3 : mode;
+
+    // if (mode & 2)
+    // {
+    //     model.materials[0].shader = defaultShader;
+    //     model.materials[1].shader = defaultShader;
+    // }
+    // else
+    // {
+    //     model.materials[0].shader = shader;
+    //     model.materials[1].shader = shader;
+    // }
+
+    // DrawRectangle(5, 5, 20, 20, hoverA ? RED : WHITE);
+    // DrawRectangle(30, 5, 20, 20, hoverB ? RED : WHITE);
+    // DrawRectangle(55, 5, 20, 20, hoverC ? RED : WHITE);
+    // rlEnableColorBlend();
+    // DrawRectangle(20, 20, 200, 200, WHITE);
+    // DrawTextEx(fntMedium, "Dithering & outlining:\n- foo", (Vector2){26, 24}, fntMedium.baseSize * 2.0f, -2.0f, WHITE);
     EndDrawing();
 }

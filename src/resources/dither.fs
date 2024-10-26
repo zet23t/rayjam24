@@ -1,5 +1,3 @@
-#extension GL_OES_standard_derivatives : enable
-
 // dithering shader;
 // Idea is simple: Our texture is 128x128 in size and divided into 8x8 blocks.
 // when we draw a pixel, we use the vertex UV position to determine which block
@@ -37,10 +35,11 @@ void main() {
         // pink transparent color
         discard;
     }
-    // decode with 6bpp per channel and store green 8bpp in alpha; 
-    // some mobile devices don't provide 32bit texture channels
-    gl_FragColor.r = color.r / 4.0 + floor(color.b * 64.0 + .5) / 4.0;
+    
     gl_FragColor.g = fragTexCoord.y + (fragTexCoord.x > 1.0 ? 1.0 : 0.0);
-    gl_FragColor.b = fragPosition.z * -0.002;
+    float z = -fragPosition.z * 10.0;
+    gl_FragColor.b = z / 256.0;
+    gl_FragColor.r = 0.0;
+    // use green channel value to reconstruct red / blue via lookup
     gl_FragColor.a = color.g;
 }
