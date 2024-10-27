@@ -18,6 +18,18 @@ varying vec3 fragPosition;
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
 uniform float time;
+
+vec2 encode16bit(float x) {
+    // Ensure the value is within the 16-bit range
+    x = (clamp(x * 256.0, 0.0, 65535.0));
+    
+    // Split the value into two 8-bit components
+    float high = floor(x / 256.0);
+    float low = mod(x, 256.0);
+    
+    return vec2(high / 255.0, low / 255.0);
+}
+
 void main() {
     vec2 screenPos = gl_FragCoord.xy;
     vec2 blockPos = floor(fract(fragTexCoord) * 16.0) / 16.0;
@@ -37,9 +49,8 @@ void main() {
     }
     
     gl_FragColor.g = fragTexCoord.y + (fragTexCoord.x > 1.0 ? 1.0 : 0.0);
-    float z = -fragPosition.z * 10.0;
-    gl_FragColor.b = z / 256.0;
-    gl_FragColor.r = 0.0;
+    float z = -fragPosition.z * 32.0;
+    gl_FragColor.rb = encode16bit(z);
     // use green channel value to reconstruct red / blue via lookup
     gl_FragColor.a = color.g;
 }

@@ -13,10 +13,35 @@ varying vec4 fragColor;
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
 uniform vec2 resolution;
+
+uniform float depthOutlineEnabled;
+uniform float uvOutlineEnabled;
+
+float decode16bit(vec2 encoded) {
+    // Reconstruct the 16-bit value from two 8-bit components
+    float high = encoded.x * 255.0;
+    float low = encoded.y * 255.0;
+    float f = ((high * 256.0 + low) / 256.0);
+    return f;
+}
+
+bool mapGreenToRedBlue(float green, float match, vec2 rg, out vec3 col)
+{
+    if (green < match + 1.0 && green > match - 1.0)
+    {
+        col.g = match;
+        col.r = rg.x;
+        col.b = rg.y;
+        return true;
+    }
+    return false;
+}
+
 void main() {
     vec4 texelColor = texture2D(texture0, fragTexCoord.xy);
-    float z = texelColor.b;
-    // gl_FragColor = vec4(z, z, z, 1.0);
+    float z = decode16bit(texelColor.rb);
+    // float zg = z * 0.1;
+    // gl_FragColor = vec4(zg, zg, zg, 1.0);
     // return;
     // gl_FragColor = vec4(texelColor.bbb*10.0, 1.0);
     vec4 texelColorN = texture2D(texture0, fragTexCoord.xy + vec2(0.0, 1.0 / resolution.y));
@@ -24,55 +49,42 @@ void main() {
     vec4 texelColorS = texture2D(texture0, fragTexCoord.xy - vec2(0.0, 1.0 / resolution.y));
     vec4 texelColorW = texture2D(texture0, fragTexCoord.xy - vec2(1.0 / resolution.x, 0.0));
     
-    float zN = texelColorN.b;
-    float zE = texelColorE.b;
-    float zS = texelColorS.b;
-    float zW = texelColorW.b;
+    float zN = decode16bit(texelColorN.rb);
+    float zE = decode16bit(texelColorE.rb);
+    float zS = decode16bit(texelColorS.rb);
+    float zW = decode16bit(texelColorW.rb);
     
     // unpack color from 32bit but potential 16bit red channel
     float f = texelColor.r;
     vec3 color = vec3(0.0);
     color.g = texelColor.a;
     float green = color.g * 255.0;
-    if (green == 65.0)
+    vec3 result;
+    if (mapGreenToRedBlue(green, 65.0, vec2(85.0,95.0), result)
+    || mapGreenToRedBlue(green, 105.0, vec2(100.0,100.0), result)
+    || mapGreenToRedBlue(green, 185.0, vec2(100.0,100.0), result)
+    || mapGreenToRedBlue(green, 140.0, vec2(80.0,215.0), result)
+    || mapGreenToRedBlue(green, 115.0, vec2(215.0,85.0), result)
+    || mapGreenToRedBlue(green, 200.0, vec2(230.0,110.0), result)
+    || mapGreenToRedBlue(green, 245.0, vec2(220.0,255.0), result)
+    )
     {
-        color.r = 85.0;
-        color.b = 95.0;
-    }
-    else if (green == 105.0 || green == 185.0)
-    {
-        color.r = 100.0;
-        color.b = 100.0;
-    }
-    else if (green == 140.0)
-    {
-        color.r = 80.0;
-        color.b = 215.0;
-    }
-    else if (green == 115.0)
-    {
-        color.r = 215.0;
-        color.b = 85.0;
-    }
-    else if (green == 200.0)
-    {
-        color.r = 230.0;
-        color.b = 110.0;
-    }
-    else if (green == 245.0)
-    {
-        color.r = 220.0;
-        color.b = 255.0;
+        color = result;
     }
 
-    color.rb /= 255.0;
+    color.rgb /= 255.0;
 
     if (texelColor == vec4(1.0, 1.0, 1.0, 1.0))
     {
         color = vec3(1.0);
     }
 
-    if (texelColor.g >= 1.0 || (texelColorW.g >= 1.0 && z > zW))
+    if (texelColor.g >= 1.0 
+        || (texelColorW.g >= 1.0 && z + 0.5 > zW)
+        || (texelColorE.g >= 1.0 && z + 0.5 > zE)
+        || (texelColorS.g >= 1.0 && z + 0.5 > zS)
+        || (texelColorN.g >= 1.0 && z + 0.5 > zN)
+        )
     {
         gl_FragColor = vec4(color, 1.0);
         return;
@@ -91,28 +103,28 @@ void main() {
         // In the first checks here
         // we only use the v-difference to mark the edge, if the current pixel is in front of our neighbor.
         // without the z comparison, we would have 2 pixel wide edges
-        (z < zE && abs(v - vE) > 0.00001) || 
-        (z < zW && abs(v - vW) > 0.00001) || 
-        (z < zS && abs(v - vS) > 0.00001) || 
-        (z < zN && abs(v - vN) > 0.00001) ||
+        (z < zE && abs(v - vE) > 0.00001 && uvOutlineEnabled > 0.0) || 
+        (z < zW && abs(v - vW) > 0.00001 && uvOutlineEnabled > 0.0) || 
+        (z < zS && abs(v - vS) > 0.00001 && uvOutlineEnabled > 0.0) || 
+        (z < zN && abs(v - vN) > 0.00001 && uvOutlineEnabled > 0.0) ||
         // This 2nd check does z based edge detection; 
         // if the z value is closer than the assumed z value calculated using the
         // neighboring z values, we want an edge. It "sticks out" of the plane of neighboring pixels 
         // if this test succeeds, it means we found an edge due to a distance difference. Adding
         // a small value to compensate for rounding errors.
-        (z + 0.01 < (zE + zW + zN + zS) * 0.25)
+        (z + 0.75 < (zE + zW + zN + zS) * 0.25 && depthOutlineEnabled > 0.0)
         )
     {
         isEdge = 0.0;
     }
     else {
-        z -= 0.0002;
+        z -= 0.0001;
         // the z comparison prevents another double edge
         // the v comparison is signed and is therefore also going only to one side
-        if ((v - vW <= -0.000001 && z <= zW) ||
-            (v - vS <= -0.000001 && z <= zS) ||
-            (v - vN <= -0.000001 && z <= zN) ||
-            (v - vE <= -0.000001 && z <= zE))
+        if ((v - vW <= -0.000001 && z <= zW && uvOutlineEnabled > 0.0) ||
+            (v - vS <= -0.000001 && z <= zS && uvOutlineEnabled > 0.0) ||
+            (v - vN <= -0.000001 && z <= zN && uvOutlineEnabled > 0.0) ||
+            (v - vE <= -0.000001 && z <= zE && uvOutlineEnabled > 0.0))
         {
             isEdge = 0.0;
         }

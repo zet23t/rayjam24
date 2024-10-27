@@ -99,20 +99,22 @@ int main(void)
     return 0;
 }
 
-#ifndef PLATFORM_WEB
+#ifdef PLATFORM_DESKTOP
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-void (*Game_init)();
+void (*Game_init)(void**);
 void (*Game_deinit)();
 void (*Game_update)();
+
+static void* contextData = NULL;
 
 void init()
 {
     if (Game_init)
     {
-        Game_init();
+        Game_init(&contextData);
     }
 }
 
@@ -167,11 +169,15 @@ static void build_game()
     init();
 }
 #else
+// simple way to make it build without specifying files
 #include "game/main.c"
+#include "game/actions.c"
+#include "game/util.c"
 int isInitialized = 0;
+void *contextData = NULL;
 void init()
 {
-    Game_init();
+    Game_init(&contextData);
 }
 
 void deinit()
@@ -196,9 +202,13 @@ static int run_foreground = 0;
 // Update and draw frame
 void UpdateDrawFrame(void)
 {
-    #ifndef PLATFORM_WEB
+    #ifdef PLATFORM_DESKTOP
     if (IsKeyPressed(KEY_R) || !is_built)
     {
+        if (IsKeyDown(KEY_LEFT_CONTROL))
+        {
+            contextData = 0;
+        }
         build_game();
     }
 

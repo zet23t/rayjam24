@@ -78,3 +78,9 @@ android.*
 
 # recordings
 *.gif
+
+# web builds
+src/raylib_game.html
+src/raylib_game.js
+src/raylib_game.wasm
+src/raylib_game.data
